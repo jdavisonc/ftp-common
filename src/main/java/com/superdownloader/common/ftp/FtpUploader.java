@@ -8,15 +8,15 @@ import java.io.File;
  *
  */
 public interface FtpUploader {
-	
+
 	public void configure(String server, String username, String password, String remotePath);
-	
+
 	public void connect();
-	
+
 	public void disconnect();
-	
+
 	public void abort();
-	
-	public void upload(File fileToUpload);
+
+	public void upload(File fileToUpload, FtpUploaderListener listener);
 
 }

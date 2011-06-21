@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,6 +12,8 @@ import java.util.Map;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.io.CopyStreamAdapter;
+import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +42,7 @@ public class FtpUploaderCommons implements FtpUploader {
 		this.ftpClient = new FTPClient();
 	}
 
+	@Override
 	public void configure(String server, String username, String password, String remotePath) {
 		this.server = server;
 		this.username = username;
@@ -87,20 +91,20 @@ public class FtpUploaderCommons implements FtpUploader {
 	}
 
 	@Override
-	public void upload(File fileToUpload){
+	public void upload(File fileToUpload, FtpUploaderListener listener){
 		try {
 			Map<String, Long> filesInServer = listFiles();
 			if (fileToUpload.isDirectory()) {
-				uploadDirectory(fileToUpload, filesInServer);
+				uploadDirectory(fileToUpload, filesInServer, listener);
 			} else {
-				uploadFile(fileToUpload, filesInServer);
+				uploadFile(fileToUpload, filesInServer, listener);
 			}
 		} catch (Exception e) {
 			throw new RuntimeException("There was an error at uploading the file", e);
 		}
 	}
 
-	private void uploadDirectory(File directoryToUpload, Map<String, Long> filesInServer) throws Exception {
+	private void uploadDirectory(File directoryToUpload, Map<String, Long> filesInServer, FtpUploaderListener listener) throws Exception {
 		// Create the directory if it was not created
 		boolean exist = filesInServer.containsKey(directoryToUpload.getName());
 		if (!exist) {
@@ -126,9 +130,9 @@ public class FtpUploaderCommons implements FtpUploader {
 		// Upload all files
 		for (File childFile : directoryToUpload.listFiles()){
 			if (childFile.isDirectory()) {
-				uploadDirectory(childFile, filesInServerDirectory);
+				uploadDirectory(childFile, filesInServerDirectory, listener);
 			} else {
-				uploadFile(childFile, filesInServerDirectory);
+				uploadFile(childFile, filesInServerDirectory, listener);
 			}
 		}
 		// Back to the original directory
@@ -136,7 +140,7 @@ public class FtpUploaderCommons implements FtpUploader {
 		ftpClient.changeToParentDirectory();
 	}
 
-	private void uploadFile(File fileToUpload, Map<String, Long> filesListInServer) throws Exception {
+	private void uploadFile(File fileToUpload, Map<String, Long> filesListInServer, FtpUploaderListener listener) throws Exception {
 		String fileName = fileToUpload.getName();
 		Long size = filesListInServer.get(fileName);
 		if (size != null && size != 0L) {
@@ -147,16 +151,39 @@ public class FtpUploaderCommons implements FtpUploader {
 				// Set the offset
 				ftpClient.setRestartOffset(size);
 				// Create stream and skip first SIZE bytes
-				InputStream stream = new FileInputStream(fileToUpload);
-				stream.skip(size);
+				InputStream ins = new FileInputStream(fileToUpload);
+				ins.skip(size);
 				// Upload file
-				ftpClient.storeFile(fileName, stream);
+				//ftpClient.storeFile(fileName, stream);
+				storeFile(fileName, ins, fileToUpload.length()-size, listener);
+
 				LOGGER.info("File {} successfully uploaded", fileName);
 			}
 		} else {
-			ftpClient.storeFile(fileName, new FileInputStream(fileToUpload));
+			storeFile(fileName, new FileInputStream(fileToUpload), fileToUpload.length(), listener);
 			LOGGER.info("File {} successfully uploaded", fileName);
 		}
+	}
+
+	private void storeFile(String fileName, InputStream ins, Long size, final FtpUploaderListener listener) throws IOException {
+		OutputStream outs = ftpClient.storeFileStream(fileName);
+
+		CopyStreamAdapter adapter = null;
+		if (listener != null) {
+			adapter = new CopyStreamAdapter() {
+		            @Override
+					public void bytesTransferred(long totalBytesTransferred,
+		                    int bytesTransferred,
+		                    long streamSize) {
+		                listener.bytesTransferred(totalBytesTransferred, bytesTransferred, streamSize);
+		            }
+			};
+		}
+
+        Util.copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
+        outs.close();
+        ins.close();
+        ftpClient.completePendingCommand();
 	}
 
 
