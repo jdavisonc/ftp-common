@@ -144,6 +144,8 @@ public class FtpUploaderCommons implements FtpUploader {
 		String fileName = fileToUpload.getName();
 		Long size = filesListInServer.get(fileName);
 		if (size != null && size != 0L) {
+			// Tell listener that already exist and tranfers (part) of the file
+			listener.bytesTransferred(size, 0, 0L);
 			if (size == fileToUpload.length()) {
 				LOGGER.info("File already exists {}", fileName);
 			} else {
@@ -154,7 +156,6 @@ public class FtpUploaderCommons implements FtpUploader {
 				InputStream ins = new FileInputStream(fileToUpload);
 				ins.skip(size);
 				// Upload file
-				//ftpClient.storeFile(fileName, stream);
 				storeFile(fileName, ins, fileToUpload.length()-size, listener);
 
 				LOGGER.info("File {} successfully uploaded", fileName);
