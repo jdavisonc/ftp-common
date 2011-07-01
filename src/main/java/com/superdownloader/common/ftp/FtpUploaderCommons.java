@@ -145,7 +145,7 @@ public class FtpUploaderCommons implements FtpUploader {
 		Long size = filesListInServer.get(fileName);
 		if (size != null && size != 0L) {
 			// Tell listener that already exist and tranfers (part) of the file
-			listener.bytesTransferred(size, 0, 0L);
+			listener.bytesTransferred(size);
 			if (size == fileToUpload.length()) {
 				LOGGER.info("File already exists {}", fileName);
 			} else {
@@ -176,7 +176,7 @@ public class FtpUploaderCommons implements FtpUploader {
 					public void bytesTransferred(long totalBytesTransferred,
 		                    int bytesTransferred,
 		                    long streamSize) {
-		                listener.bytesTransferred(totalBytesTransferred, bytesTransferred, streamSize);
+		                listener.bytesTransferred(bytesTransferred);
 		            }
 			};
 		}
