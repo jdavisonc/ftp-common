@@ -53,11 +53,13 @@ public class FtpUploaderCommons implements FtpUploader {
 	@Override
 	public void connect() {
 		try {
+
 			ftpClient.setDataTimeout(TIMEOUT);
 			ftpClient.setConnectTimeout(TIMEOUT);
 			ftpClient.setDefaultTimeout(TIMEOUT);
 
 			ftpClient.connect(server);
+			ftpClient.enterLocalPassiveMode();
 			ftpClient.login(username, password);
 			if (remotePath != null) {
 				LOGGER.info("Moving to directory {}", remotePath);
@@ -65,7 +67,6 @@ public class FtpUploaderCommons implements FtpUploader {
 			}
 			// Set ftp client configurations
 			ftpClient.setSoTimeout(TIMEOUT);
-			ftpClient.enterLocalPassiveMode();
 			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 		} catch (Exception e) {
 			throw new RuntimeException("Error at connect to the server.", e);
