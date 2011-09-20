@@ -12,6 +12,8 @@ import java.util.Map;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPListParseEngine;
+import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.io.CopyStreamAdapter;
 import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
@@ -38,6 +40,8 @@ public class FtpUploaderCommons implements FtpUploader {
 
 	private final FTPClient ftpClient;
 
+	private String type;
+
 	public FtpUploaderCommons() {
 		this.ftpClient = new FTPClient();
 	}
@@ -61,13 +65,27 @@ public class FtpUploaderCommons implements FtpUploader {
 			ftpClient.connect(server);
 			ftpClient.enterLocalPassiveMode();
 			ftpClient.login(username, password);
-			if (remotePath != null) {
-				LOGGER.info("Moving to directory {}", remotePath);
-				ftpClient.changeWorkingDirectory(remotePath);
+
+			int reply = ftpClient.getReplyCode();
+			if (FTPReply.isPositiveCompletion(reply)){
+
+				try {
+					type = ftpClient.getSystemType();
+				} catch (IOException e) {
+					type = "UNIX";
+				}
+
+				if (remotePath != null) {
+					LOGGER.info("Moving to directory {}", remotePath);
+					ftpClient.changeWorkingDirectory(remotePath);
+				}
+				// Set ftp client configurations
+				ftpClient.setSoTimeout(TIMEOUT);
+				ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+			} else {
+				ftpClient.disconnect();
+				throw new Exception("Login Fail");
 			}
-			// Set ftp client configurations
-			ftpClient.setSoTimeout(TIMEOUT);
-			ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 		} catch (Exception e) {
 			throw new RuntimeException("Error at connect to the server.", e);
 		}
@@ -76,7 +94,10 @@ public class FtpUploaderCommons implements FtpUploader {
 	@Override
 	public void disconnect() {
 		try {
-			ftpClient.disconnect();
+			ftpClient.logout();
+			if (ftpClient.isConnected()) {
+				ftpClient.disconnect();
+			}
 		} catch (IOException e) {
 			LOGGER.warn("Error at closing the connection", e);
 		}
@@ -197,7 +218,14 @@ public class FtpUploaderCommons implements FtpUploader {
 		Map<String, Long> files = new LinkedHashMap<String, Long>();
 		while (true){
 			try {
-				FTPFile[] list = ftpClient.listFiles();
+				FTPListParseEngine engine = null;
+				if ("UNIX".equals(type)) {
+					engine = ftpClient.initiateListParsing("org.apache.commons.net.ftp.parser.UnixFTPEntryParser", null);
+				} else {
+					engine = ftpClient.initiateListParsing();
+				}
+
+				FTPFile[] list = engine.getFiles();
 				if (list != null){
 					for (FTPFile ftpFile : list){
 						files.put(ftpFile.getName(), ftpFile.getSize());
