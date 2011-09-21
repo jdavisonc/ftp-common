@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
@@ -69,9 +70,8 @@ public class FtpUploaderCommons implements FtpUploader {
 			int reply = ftpClient.getReplyCode();
 			if (FTPReply.isPositiveCompletion(reply)){
 
-				try {
-					type = ftpClient.getSystemType();
-				} catch (IOException e) {
+				type = ftpClient.getSystemName();
+				if (type == null) {
 					type = "UNIX";
 				}
 
@@ -219,8 +219,8 @@ public class FtpUploaderCommons implements FtpUploader {
 		while (true){
 			try {
 				FTPListParseEngine engine = null;
-				if ("UNIX".equals(type)) {
-					engine = ftpClient.initiateListParsing("org.apache.commons.net.ftp.parser.UnixFTPEntryParser", null);
+				if (type.startsWith("UNIX")) {
+					engine = ftpClient.initiateListParsing(FTPClientConfig.SYST_UNIX, null);
 				} else {
 					engine = ftpClient.initiateListParsing();
 				}
@@ -235,6 +235,7 @@ public class FtpUploaderCommons implements FtpUploader {
 			} catch (Exception e) {
 				attempts++;
 				if (attempts > 3) {
+					LOGGER.warn("Error at listing ftp server files", e);
 					throw new RuntimeException("Error at listing ftp server files", e);
 				} else {
 					LOGGER.debug("First attempt to get list of files FAILED! attempt={}", attempts);
