@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.commons.net.MalformedServerReplyException;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
@@ -44,7 +45,7 @@ public class FtpUploaderCommons implements FtpUploader {
 	private String type;
 
 	public FtpUploaderCommons() {
-		this.ftpClient = new FTPClient();
+		ftpClient = new FTPClient();
 	}
 
 	@Override
@@ -76,7 +77,7 @@ public class FtpUploaderCommons implements FtpUploader {
 				}
 
 				if (remotePath != null) {
-					LOGGER.info("Moving to directory {}", remotePath);
+					LOGGER.debug("Moving to directory {}", remotePath);
 					ftpClient.changeWorkingDirectory(remotePath);
 				}
 				// Set ftp client configurations
@@ -131,14 +132,14 @@ public class FtpUploaderCommons implements FtpUploader {
 		boolean exist = filesInServer.containsKey(directoryToUpload.getName());
 		if (!exist) {
 			try {
-				LOGGER.info(""+ftpClient.makeDirectory(directoryToUpload.getName()));
-				LOGGER.info("Directory created! {}", directoryToUpload.getName());
+				LOGGER.debug(""+ftpClient.makeDirectory(directoryToUpload.getName()));
+				LOGGER.debug("Directory created! {}", directoryToUpload.getName());
 			} catch (Exception e){
-				LOGGER.info("Could not create directory, may be it already exist");
+				LOGGER.debug("Could not create directory, may be it already exist");
 			}
 		}
 		// Change to the directory
-		LOGGER.info("Moving to directory {}", directoryToUpload.getName());
+		LOGGER.debug("Moving to directory {}", directoryToUpload.getName());
 		ftpClient.changeWorkingDirectory(directoryToUpload.getName());
 
 		// Check the files inside the directory
@@ -158,7 +159,7 @@ public class FtpUploaderCommons implements FtpUploader {
 			}
 		}
 		// Back to the original directory
-		LOGGER.info("Moving to directory up");
+		LOGGER.debug("Moving to directory up");
 		ftpClient.changeToParentDirectory();
 	}
 
@@ -169,9 +170,9 @@ public class FtpUploaderCommons implements FtpUploader {
 			// Tell listener that already exist and tranfers (part) of the file
 			listener.bytesTransferred(size);
 			if (size == fileToUpload.length()) {
-				LOGGER.info("File already exists {}", fileName);
+				LOGGER.debug("File already exists {}", fileName);
 			} else {
-				LOGGER.info("Resuming file {} from {}MB", fileName, (size / (1024*1024)));
+				LOGGER.debug("Resuming file {} from {}MB", fileName, (size / (1024*1024)));
 				// Set the offset
 				ftpClient.setRestartOffset(size);
 				// Create stream and skip first SIZE bytes
@@ -180,11 +181,11 @@ public class FtpUploaderCommons implements FtpUploader {
 				// Upload file
 				storeFile(fileName, ins, fileToUpload.length()-size, listener);
 
-				LOGGER.info("File {} successfully uploaded", fileName);
+				LOGGER.debug("File {} successfully uploaded", fileName);
 			}
 		} else {
 			storeFile(fileName, new FileInputStream(fileToUpload), fileToUpload.length(), listener);
-			LOGGER.info("File {} successfully uploaded", fileName);
+			LOGGER.debug("File {} successfully uploaded", fileName);
 		}
 	}
 
@@ -194,19 +195,29 @@ public class FtpUploaderCommons implements FtpUploader {
 		CopyStreamAdapter adapter = null;
 		if (listener != null) {
 			adapter = new CopyStreamAdapter() {
-		            @Override
-					public void bytesTransferred(long totalBytesTransferred,
-		                    int bytesTransferred,
-		                    long streamSize) {
-		                listener.bytesTransferred(bytesTransferred);
-		            }
+				@Override
+				public void bytesTransferred(long totalBytesTransferred, int bytesTransferred, long streamSize) {
+					listener.bytesTransferred(bytesTransferred);
+				}
 			};
 		}
 
-        Util.copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
-        outs.close();
-        ins.close();
-        ftpClient.completePendingCommand();
+		try {
+			Util.copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
+		} finally {
+			outs.close();
+			ins.close();
+		}
+
+		try {
+			if (!ftpClient.completePendingCommand()) {
+				throw new RuntimeException("Transfer failed.");
+			}
+		} catch (MalformedServerReplyException e) {
+			if (!e.getMessage().contains("OK")) {
+				throw e;
+			}
+		}
 	}
 
 
