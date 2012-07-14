@@ -1,6 +1,7 @@
 package com.superdownloader.common.ftp;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +22,9 @@ import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.superdownloader.common.ftp.filter.DirectoryFileFilter;
+import com.superdownloader.common.ftp.filter.NormalFileFilter;
+
 /**
  * Implementation of {@link FtpUploader} with Apache Commons NET Library
  * @author harley
@@ -31,6 +35,10 @@ public class FtpUploaderCommons implements FtpUploader {
 	private final static Logger LOGGER = LoggerFactory.getLogger(FtpUploaderCommons.class);
 
 	private final static int TIMEOUT = 2 * 60 * 1000;
+
+	private final static FileFilter directoryFileFilter = new DirectoryFileFilter();
+
+	private final static FileFilter normalFileFilter = new NormalFileFilter();
 
 	private String server;
 
@@ -150,14 +158,15 @@ public class FtpUploaderCommons implements FtpUploader {
 			filesInServerDirectory = listFiles();
 		}
 
-		// Upload all files
-		for (File childFile : directoryToUpload.listFiles()){
-			if (childFile.isDirectory()) {
-				uploadDirectory(childFile, filesInServerDirectory, listener);
-			} else {
-				uploadFile(childFile, filesInServerDirectory, listener);
-			}
+		// Upload all directories first
+		for (File childFile : directoryToUpload.listFiles(directoryFileFilter)){
+			uploadDirectory(childFile, filesInServerDirectory, listener);
 		}
+		// Upload all files
+		for (File childFile : directoryToUpload.listFiles(normalFileFilter)){
+			uploadFile(childFile, filesInServerDirectory, listener);
+		}
+
 		// Back to the original directory
 		LOGGER.debug("Moving to directory up");
 		ftpClient.changeToParentDirectory();
