@@ -1,4 +1,4 @@
-ftp-common
+SeedBoxer FTPCommon
 ==========
 
-ftp-common
+![Build Status](https://secure.travis-ci.org/seedboxer/ftp-common.png)
