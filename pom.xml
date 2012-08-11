@@ -4,7 +4,8 @@
 	<groupId>com.superdownloader</groupId>
 	<artifactId>ftp-common</artifactId>
 	<version>0.4-SNAPSHOT</version>
-
+	
+	<name>SeedBoxer FTPCommon</name>
 
 	<properties>
 		<slf4j-api.version>1.6.1</slf4j-api.version>
