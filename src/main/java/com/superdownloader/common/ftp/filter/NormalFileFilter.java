@@ -27,7 +27,7 @@ import java.io.File;
 import java.io.FileFilter;
 
 /**
- * @author harley
+ * @author Jorge Davison (jdavisonc)
  *
  */
 public class NormalFileFilter implements FileFilter {

@@ -47,7 +47,8 @@ import com.superdownloader.common.ftp.filter.NormalFileFilter;
 
 /**
  * Implementation of {@link FtpUploader} with Apache Commons NET Library
- * @author harley
+ * 
+ * @author Jorge Davison (jdavisonc)
  *
  */
 public class FtpUploaderCommons implements FtpUploader {
@@ -85,7 +86,7 @@ public class FtpUploaderCommons implements FtpUploader {
 	}
 
 	@Override
-	public void connect() {
+	public void connect() throws IOException {
 		try {
 
 			ftpClient.setDataTimeout(TIMEOUT);
@@ -116,33 +117,31 @@ public class FtpUploaderCommons implements FtpUploader {
 				throw new Exception("Login Fail");
 			}
 		} catch (Exception e) {
-			throw new RuntimeException("Error at connect to the server.", e);
+			throw new IOException("Error at connect to the server.", e);
 		}
 	}
 
 	@Override
-	public void disconnect() {
+	public void disconnect() throws IOException {
 		try {
 			ftpClient.logout();
 			if (ftpClient.isConnected()) {
 				ftpClient.disconnect();
 			}
-		} catch (IOException e) {
-			LOGGER.warn("Error at closing the connection", e);
-		}
+		} catch (IOException e) { /*ignore */ }
 	}
 
 	@Override
-	public void abort() {
+	public void abort() throws IOException {
 		try {
 			ftpClient.abort();
 		} catch (Exception e) {
-			throw new RuntimeException("There was an error at aborting", e);
+			throw new IOException("There was an error at aborting", e);
 		}
 	}
 
 	@Override
-	public void upload(File fileToUpload, FtpUploaderListener listener){
+	public void upload(File fileToUpload, FtpUploaderListener listener) throws IOException {
 		try {
 			Map<String, Long> filesInServer = listFiles();
 			if (fileToUpload.isDirectory()) {
@@ -151,7 +150,7 @@ public class FtpUploaderCommons implements FtpUploader {
 				uploadFile(fileToUpload, filesInServer, listener);
 			}
 		} catch (Exception e) {
-			throw new RuntimeException("There was an error at uploading the file", e);
+			throw new IOException("There was an error at uploading the file", e);
 		}
 	}
 
@@ -201,7 +200,7 @@ public class FtpUploaderCommons implements FtpUploader {
 			if (size == fileToUpload.length()) {
 				LOGGER.debug("File already exists {}", fileName);
 			} else {
-				LOGGER.debug("Resuming file {} from {}MB", fileName, (size / (1024*1024)));
+				LOGGER.trace("Resuming file {} from {} MB", fileName, (size / (1024*1024)));
 				// Set the offset
 				ftpClient.setRestartOffset(size);
 				// Create stream and skip first SIZE bytes
@@ -275,10 +274,9 @@ public class FtpUploaderCommons implements FtpUploader {
 			} catch (Exception e) {
 				attempts++;
 				if (attempts > 3) {
-					LOGGER.warn("Error at listing ftp server files", e);
 					throw new RuntimeException("Error at listing ftp server files", e);
 				} else {
-					LOGGER.debug("First attempt to get list of files FAILED! attempt={}", attempts);
+					LOGGER.trace("First attempt to get list of files FAILED! attempt={}", attempts);
 				}
 			}
 		}

@@ -20,6 +20,11 @@
  ******************************************************************************/
 package com.superdownloader.common.ftp;
 
+/**
+ * 
+ * @author Jorge Davison (jdavisonc)
+ *
+ */
 public interface FtpUploaderListener {
 
 	void bytesTransferred(long bytesTransferred);

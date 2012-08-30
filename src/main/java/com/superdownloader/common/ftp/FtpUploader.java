@@ -21,22 +21,24 @@
 package com.superdownloader.common.ftp;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Interface to implement a FTP Client
- * @author harley
+ * 
+ * @author Jorge Davison (jdavisonc)
  *
  */
 public interface FtpUploader {
 
 	public void configure(String server, String username, String password, String remotePath);
 
-	public void connect();
+	public void connect() throws IOException;
 
-	public void disconnect();
+	public void disconnect() throws IOException;
 
-	public void abort();
+	public void abort() throws IOException;
 
-	public void upload(File fileToUpload, FtpUploaderListener listener);
+	public void upload(File fileToUpload, FtpUploaderListener listener) throws IOException;
 
 }
