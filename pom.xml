@@ -23,7 +23,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.seedboxer</groupId>
 	<artifactId>ftp-common</artifactId>
-	<version>0.4-SNAPSHOT</version>
+	<version>0.5</version>
 	<name>SeedBoxer FTPCommon</name>
 	<description>SeedBoxer FTP common library</description>
 	<url>https://github.com/seedboxer/ftp-common</url>
