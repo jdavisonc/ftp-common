@@ -242,7 +242,8 @@ public class FtpUploaderCommons implements FtpUploader {
 				throw new RuntimeException("Transfer failed.");
 			}
 		} catch (MalformedServerReplyException e) {
-			if (!e.getMessage().contains("OK")) {
+			if (!e.getMessage().toLowerCase().contains("ok") && 
+                            !e.getMessage().toLowerCase().contains("complete")) {
 				throw e;
 			}
 		}
