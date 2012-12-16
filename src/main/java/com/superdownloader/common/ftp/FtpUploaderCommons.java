@@ -42,6 +42,12 @@ import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.superdownloader.common.ftp.exception.AbortedTransferException;
+import com.superdownloader.common.ftp.exception.FtpConnectionException;
+import com.superdownloader.common.ftp.exception.FtpException;
+import com.superdownloader.common.ftp.exception.FtpInvalidLoginException;
+import com.superdownloader.common.ftp.exception.FtpListFilesException;
+import com.superdownloader.common.ftp.exception.FtpTransferException;
 import com.superdownloader.common.ftp.filter.DirectoryFileFilter;
 import com.superdownloader.common.ftp.filter.NormalFileFilter;
 
@@ -73,6 +79,8 @@ public class FtpUploaderCommons implements FtpUploader {
 
 	private String type;
 
+	private volatile boolean aborted = false;
+
 	public FtpUploaderCommons() {
 		ftpClient = new FTPClient();
 	}
@@ -86,7 +94,7 @@ public class FtpUploaderCommons implements FtpUploader {
 	}
 
 	@Override
-	public void connect() throws IOException {
+	public void connect() throws FtpException {
 		try {
 
 			ftpClient.setDataTimeout(TIMEOUT);
@@ -100,10 +108,7 @@ public class FtpUploaderCommons implements FtpUploader {
 			int reply = ftpClient.getReplyCode();
 			if (FTPReply.isPositiveCompletion(reply)){
 
-				type = ftpClient.getSystemName();
-				if (type == null) {
-					type = "UNIX";
-				}
+				type = ftpClient.getSystemType().toUpperCase();
 
 				if (remotePath != null) {
 					LOGGER.debug("Moving to directory {}", remotePath);
@@ -114,15 +119,15 @@ public class FtpUploaderCommons implements FtpUploader {
 				ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 			} else {
 				ftpClient.disconnect();
-				throw new Exception("Login Fail");
+				throw new FtpInvalidLoginException();
 			}
-		} catch (Exception e) {
-			throw new IOException("Error at connect to the server.", e);
+		} catch (IOException e) {
+			throw new FtpConnectionException(e);
 		}
 	}
 
 	@Override
-	public void disconnect() throws IOException {
+	public void disconnect() throws FtpException {
 		try {
 			ftpClient.logout();
 			if (ftpClient.isConnected()) {
@@ -132,16 +137,12 @@ public class FtpUploaderCommons implements FtpUploader {
 	}
 
 	@Override
-	public void abort() throws IOException {
-		try {
-			ftpClient.abort();
-		} catch (Exception e) {
-			throw new IOException("There was an error at aborting", e);
-		}
+	public void abort() throws FtpException {
+		aborted = true;
 	}
 
 	@Override
-	public void upload(File fileToUpload, FtpUploaderListener listener) throws IOException {
+	public void upload(File fileToUpload, FtpUploaderListener listener) throws FtpException {
 		try {
 			Map<String, Long> filesInServer = listFiles();
 			if (fileToUpload.isDirectory()) {
@@ -149,12 +150,16 @@ public class FtpUploaderCommons implements FtpUploader {
 			} else {
 				uploadFile(fileToUpload, filesInServer, listener);
 			}
-		} catch (Exception e) {
-			throw new IOException("There was an error at uploading the file", e);
+		} catch (FtpException e) {
+			throw e;
+		} catch (IOException e) {
+			throw new FtpTransferException(e);
 		}
 	}
 
-	private void uploadDirectory(File directoryToUpload, Map<String, Long> filesInServer, FtpUploaderListener listener) throws Exception {
+	private void uploadDirectory(File directoryToUpload, Map<String, Long> filesInServer,
+			FtpUploaderListener listener) throws IOException {
+
 		// Create the directory if it was not created
 		boolean exist = filesInServer.containsKey(directoryToUpload.getName());
 		if (!exist) {
@@ -191,11 +196,13 @@ public class FtpUploaderCommons implements FtpUploader {
 		ftpClient.changeToParentDirectory();
 	}
 
-	private void uploadFile(File fileToUpload, Map<String, Long> filesListInServer, FtpUploaderListener listener) throws Exception {
+	private void uploadFile(File fileToUpload, Map<String, Long> filesListInServer,
+			FtpUploaderListener listener) throws IOException {
+
 		String fileName = fileToUpload.getName();
 		Long size = filesListInServer.get(fileName);
 		if (size != null && size != 0L) {
-			// Tell listener that already exist and tranfers (part) of the file
+			// Tell listener that already exist and transfer (part) of the file
 			listener.bytesTransferred(size);
 			if (size == fileToUpload.length()) {
 				LOGGER.debug("File already exists {}", fileName);
@@ -217,18 +224,24 @@ public class FtpUploaderCommons implements FtpUploader {
 		}
 	}
 
-	private void storeFile(String fileName, InputStream ins, Long size, final FtpUploaderListener listener) throws IOException {
+	private void storeFile(String fileName, InputStream ins, Long size,
+			final FtpUploaderListener listener) throws IOException {
+
+		cleanAbortedStatus();
+
 		OutputStream outs = ftpClient.storeFileStream(fileName);
 
-		CopyStreamAdapter adapter = null;
-		if (listener != null) {
-			adapter = new CopyStreamAdapter() {
-				@Override
-				public void bytesTransferred(long totalBytesTransferred, int bytesTransferred, long streamSize) {
+		CopyStreamAdapter adapter = new CopyStreamAdapter() {
+			@Override
+			public void bytesTransferred(long totalBytesTransferred, int bytesTransferred, long streamSize) {
+				if (listener != null) {
 					listener.bytesTransferred(bytesTransferred);
 				}
-			};
-		}
+				if (aborted) {
+					throw new AbortedTransferException();
+				}
+			}
+		};
 
 		try {
 			Util.copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
@@ -239,21 +252,28 @@ public class FtpUploaderCommons implements FtpUploader {
 
 		try {
 			if (!ftpClient.completePendingCommand()) {
-				throw new RuntimeException("Transfer failed.");
+				throw new FtpTransferException();
 			}
 		} catch (MalformedServerReplyException e) {
-			if (!e.getMessage().toLowerCase().contains("ok") && 
-                            !e.getMessage().toLowerCase().contains("complete")) {
+			if (!e.getMessage().toLowerCase().contains("ok") &&
+					!e.getMessage().toLowerCase().contains("complete")) {
 				throw e;
 			}
 		}
 	}
 
+	private void cleanAbortedStatus() {
+		aborted = false;
+	}
+
 
 	/**
-	 * Auxiliar methods
+	 * List files inside the current folder.
+	 * 
+	 * @return List with files names and size
+	 * @throws IOException
 	 */
-	private Map<String, Long> listFiles(){
+	private Map<String, Long> listFiles() throws FtpException {
 		int attempts = 0;
 		Map<String, Long> files = new LinkedHashMap<String, Long>();
 		while (true){
@@ -275,7 +295,7 @@ public class FtpUploaderCommons implements FtpUploader {
 			} catch (Exception e) {
 				attempts++;
 				if (attempts > 3) {
-					throw new RuntimeException("Error at listing ftp server files", e);
+					throw new FtpListFilesException(e);
 				} else {
 					LOGGER.trace("First attempt to get list of files FAILED! attempt={}", attempts);
 				}

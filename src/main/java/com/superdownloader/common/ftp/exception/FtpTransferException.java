@@ -1,5 +1,5 @@
 /*******************************************************************************
- * FtpUploader.java
+ * FtpTransferException.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,28 +18,29 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp;
+package com.superdownloader.common.ftp.exception;
 
-import java.io.File;
-
-import com.superdownloader.common.ftp.exception.FtpException;
 
 /**
- * Interface to implement a FTP Client
  * 
  * @author Jorge Davison (jdavisonc)
  *
  */
-public interface FtpUploader {
+public class FtpTransferException extends FtpException {
 
-	public void configure(String server, String username, String password, String remotePath);
+	private static final long serialVersionUID = 8481127136237928650L;
 
-	public void connect() throws FtpException;
+	public FtpTransferException(Exception e) {
+		super(e);
+	}
 
-	public void disconnect() throws FtpException;
+	public FtpTransferException() {
+		super();
+	}
 
-	public void abort() throws FtpException;
-
-	public void upload(File fileToUpload, FtpUploaderListener listener) throws FtpException;
+	@Override
+	public String getMessage() {
+		return "There was an error at uploading the file";
+	}
 
 }
