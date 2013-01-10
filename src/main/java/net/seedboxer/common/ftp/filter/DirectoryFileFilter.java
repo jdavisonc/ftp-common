@@ -1,5 +1,5 @@
 /*******************************************************************************
- * FtpTransferException.java
+ * DirectoryFileFilter.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,29 +18,23 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp.exception;
-
-
 /**
  * 
+ */
+package net.seedboxer.common.ftp.filter;
+
+import java.io.File;
+import java.io.FileFilter;
+
+/**
  * @author Jorge Davison (jdavisonc)
  *
  */
-public class FtpTransferException extends FtpException {
-
-	private static final long serialVersionUID = 8481127136237928650L;
-
-	public FtpTransferException(Exception e) {
-		super(e);
-	}
-
-	public FtpTransferException() {
-		super();
-	}
+public class DirectoryFileFilter implements FileFilter {
 
 	@Override
-	public String getMessage() {
-		return "There was an error at uploading the file";
+	public boolean accept(File file) {
+		return file.isDirectory();
 	}
 
 }

@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp;
+package net.seedboxer.common.ftp;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -29,6 +29,15 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import net.seedboxer.common.ftp.exception.AbortedTransferException;
+import net.seedboxer.common.ftp.exception.FtpConnectionException;
+import net.seedboxer.common.ftp.exception.FtpException;
+import net.seedboxer.common.ftp.exception.FtpInvalidLoginException;
+import net.seedboxer.common.ftp.exception.FtpListFilesException;
+import net.seedboxer.common.ftp.exception.FtpTransferException;
+import net.seedboxer.common.ftp.filter.DirectoryFileFilter;
+import net.seedboxer.common.ftp.filter.NormalFileFilter;
 
 import org.apache.commons.net.MalformedServerReplyException;
 import org.apache.commons.net.ftp.FTP;
@@ -42,14 +51,6 @@ import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.superdownloader.common.ftp.exception.AbortedTransferException;
-import com.superdownloader.common.ftp.exception.FtpConnectionException;
-import com.superdownloader.common.ftp.exception.FtpException;
-import com.superdownloader.common.ftp.exception.FtpInvalidLoginException;
-import com.superdownloader.common.ftp.exception.FtpListFilesException;
-import com.superdownloader.common.ftp.exception.FtpTransferException;
-import com.superdownloader.common.ftp.filter.DirectoryFileFilter;
-import com.superdownloader.common.ftp.filter.NormalFileFilter;
 
 /**
  * Implementation of {@link FtpUploader} with Apache Commons NET Library

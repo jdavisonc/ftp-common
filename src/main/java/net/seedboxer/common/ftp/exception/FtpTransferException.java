@@ -1,5 +1,5 @@
 /*******************************************************************************
- * FtpInvalidLoginException.java
+ * FtpTransferException.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,23 +18,29 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp.exception;
+package net.seedboxer.common.ftp.exception;
+
 
 /**
  * 
  * @author Jorge Davison (jdavisonc)
  *
  */
-public class FtpInvalidLoginException extends FtpException {
+public class FtpTransferException extends FtpException {
 
-	private static final long serialVersionUID = -8694742007052706923L;
+	private static final long serialVersionUID = 8481127136237928650L;
 
-	public FtpInvalidLoginException() {
+	public FtpTransferException(Exception e) {
+		super(e);
+	}
+
+	public FtpTransferException() {
 		super();
 	}
 
 	@Override
 	public String getMessage() {
-		return "Ftp login fail";
+		return "There was an error at uploading the file";
 	}
+
 }

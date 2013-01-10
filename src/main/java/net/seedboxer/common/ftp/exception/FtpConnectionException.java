@@ -1,5 +1,5 @@
 /*******************************************************************************
- * AbortedTransferException.java
+ * FtpConnectionException.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,22 +18,23 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp.exception;
+package net.seedboxer.common.ftp.exception;
 
 /**
  * 
  * @author Jorge Davison (jdavisonc)
  *
  */
-public class AbortedTransferException extends RuntimeException {
+public class FtpConnectionException extends FtpException {
 
-	private static final long serialVersionUID = 835630742861242296L;
+	private static final long serialVersionUID = -8694742007052706923L;
 
-	public AbortedTransferException() { }
+	public FtpConnectionException(Exception e) {
+		super(e);
+	}
 
 	@Override
 	public String getMessage() {
-		return "The transfer was aborted";
+		return "Error at connect to the server";
 	}
-
 }

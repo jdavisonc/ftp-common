@@ -1,5 +1,5 @@
 /*******************************************************************************
- * NormalFileFilter.java
+ * FtpUploader.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,23 +18,24 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
+package net.seedboxer.common.ftp.exception;
+
 /**
  * 
- */
-package com.superdownloader.common.ftp.filter;
-
-import java.io.File;
-import java.io.FileFilter;
-
-/**
  * @author Jorge Davison (jdavisonc)
  *
  */
-public class NormalFileFilter implements FileFilter {
+public class FtpListFilesException extends FtpException {
+
+	private static final long serialVersionUID = -8114563649686015224L;
+
+	public FtpListFilesException(Exception e) {
+		super(e);
+	}
 
 	@Override
-	public boolean accept(File file) {
-		return file.isFile();
+	public String getMessage() {
+		return "Error at listing ftp server files";
 	}
 
 }

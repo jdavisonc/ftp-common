@@ -1,5 +1,5 @@
 /*******************************************************************************
- * FtpUploader.java
+ * FtpException.java
  * 
  * Copyright (c) 2012 Team SeedBoxer.
  * 
@@ -18,24 +18,25 @@
  * You should have received a copy of the GNU General Public License
  * along with SeedBoxer FTPCommon.  If not, see <http ://www.gnu.org/licenses/>.
  ******************************************************************************/
-package com.superdownloader.common.ftp.exception;
+package net.seedboxer.common.ftp.exception;
+
+import java.io.IOException;
 
 /**
  * 
  * @author Jorge Davison (jdavisonc)
  *
  */
-public class FtpListFilesException extends FtpException {
+public class FtpException extends IOException {
 
-	private static final long serialVersionUID = -8114563649686015224L;
+	private static final long serialVersionUID = -5424664079456348089L;
 
-	public FtpListFilesException(Exception e) {
+	public FtpException(Exception e) {
 		super(e);
 	}
 
-	@Override
-	public String getMessage() {
-		return "Error at listing ftp server files";
+	public FtpException() {
+		super();
 	}
 
 }
