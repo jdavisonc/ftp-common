@@ -16,10 +16,9 @@
   GNU General Public License for more details.
   
   You should have received a copy of the GNU General Public License
-  along with SeedBoxer FTP Common.  If not, see <http ://www.gnu.org/licenses/>.
+  along with SeedBoxer FTP Common.  If not, see <http ://www.gnu.org/licenses />.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -30,7 +29,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.seedboxer</groupId>
 	<artifactId>ftp-common</artifactId>
-	<version>0.6-SNAPSHOT</version>
+	<version>0.6</version>
 	<name>SeedBoxer FTPCommon</name>
 	<description>SeedBoxer FTP common library</description>
 	<url>https://github.com/seedboxer/ftp-common</url>
