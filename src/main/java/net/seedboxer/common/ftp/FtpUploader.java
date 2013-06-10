@@ -33,7 +33,7 @@ import net.seedboxer.common.ftp.exception.FtpException;
  */
 public interface FtpUploader {
 
-	public void configure(String server, String username, String password, String remotePath);
+	public void configure(String server, String username, String password, String remotePath, boolean ssl) throws Exception ;
 
 	public void connect() throws FtpException;
 

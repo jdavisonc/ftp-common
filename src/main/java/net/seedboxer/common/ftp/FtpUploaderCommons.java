@@ -46,6 +46,7 @@ import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
+import org.apache.commons.net.ftp.FTPSClient;
 import org.apache.commons.net.io.CopyStreamAdapter;
 import org.apache.commons.net.io.Util;
 import org.slf4j.Logger;
@@ -76,18 +77,19 @@ public class FtpUploaderCommons implements FtpUploader {
 
 	private String remotePath;
 
-	private final FTPClient ftpClient;
+	private FTPClient ftpClient;
 
 	private String type;
 
 	private volatile boolean aborted = false;
 
-	public FtpUploaderCommons() {
-		ftpClient = new FTPClient();
-	}
-
 	@Override
-	public void configure(String server, String username, String password, String remotePath) {
+	public void configure(String server, String username, String password, String remotePath, boolean ssl) throws Exception {
+		if (ssl) {
+			this.ftpClient = new FTPSClient("SSL", true);
+		} else {			
+			this.ftpClient = new FTPClient();
+		}
 		this.server = server;
 		this.username = username;
 		this.password = password;
