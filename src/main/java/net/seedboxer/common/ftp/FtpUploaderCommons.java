@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.seedboxer.common.ftp.exception.AbortedTransferException;
 import net.seedboxer.common.ftp.exception.FtpConnectionException;
@@ -48,7 +49,8 @@ import org.apache.commons.net.ftp.FTPListParseEngine;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.apache.commons.net.io.CopyStreamAdapter;
-import org.apache.commons.net.io.Util;
+import org.apache.commons.net.io.CopyStreamException;
+import org.apache.commons.net.io.CopyStreamListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +83,7 @@ public class FtpUploaderCommons implements FtpUploader {
 
 	private String type;
 
-	private volatile boolean aborted = false;
+	private final AtomicBoolean aborted = new AtomicBoolean(false);
 
 	@Override
 	public void configure(String server, String username, String password, String remotePath, boolean ssl) throws Exception {
@@ -141,7 +143,7 @@ public class FtpUploaderCommons implements FtpUploader {
 
 	@Override
 	public void abort() throws FtpException {
-		aborted = true;
+		aborted.set(true);
 	}
 
 	@Override
@@ -163,6 +165,8 @@ public class FtpUploaderCommons implements FtpUploader {
 	private void uploadDirectory(File directoryToUpload, Map<String, Long> filesInServer,
 			FtpUploaderListener listener) throws IOException {
 
+		checkAborted();
+		
 		// Create the directory if it was not created
 		boolean exist = filesInServer.containsKey(directoryToUpload.getName());
 		if (!exist) {
@@ -230,8 +234,8 @@ public class FtpUploaderCommons implements FtpUploader {
 	private void storeFile(String fileName, InputStream ins, Long size,
 			final FtpUploaderListener listener) throws IOException {
 
-		cleanAbortedStatus();
-
+		checkAborted();
+		
 		OutputStream outs = ftpClient.storeFileStream(fileName);
 
 		CopyStreamAdapter adapter = new CopyStreamAdapter() {
@@ -240,14 +244,11 @@ public class FtpUploaderCommons implements FtpUploader {
 				if (listener != null) {
 					listener.bytesTransferred(bytesTransferred);
 				}
-				if (aborted) {
-					throw new AbortedTransferException();
-				}
 			}
 		};
 
 		try {
-			Util.copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
+			copyStream(ins, outs, ftpClient.getBufferSize(), size, adapter);
 		} finally {
 			outs.close();
 			ins.close();
@@ -264,11 +265,50 @@ public class FtpUploaderCommons implements FtpUploader {
 			}
 		}
 	}
-
-	private void cleanAbortedStatus() {
-		aborted = false;
+	
+	private void checkAborted() {
+		if (aborted.get()) {
+			throw new AbortedTransferException();
+		}
 	}
 
+	private void copyStream(InputStream source, OutputStream dest,
+            int bufferSize, long streamSize,
+            CopyStreamListener listener) throws CopyStreamException {
+        int bytes;
+        long total;
+        byte[] buffer;
+
+        buffer = new byte[bufferSize];
+        total = 0;
+
+        try {
+            while ((bytes = source.read(buffer)) != -1 || !aborted.get()) {
+                if (bytes == 0) {
+                    bytes = source.read();
+                    if (bytes < 0) {
+                        break;
+                    }
+                    dest.write(bytes);
+                    dest.flush();
+                    ++total;
+                    if (listener != null) {
+                        listener.bytesTransferred(total, 1, streamSize);
+                    }
+                    continue;
+                }
+
+                dest.write(buffer, 0, bytes);
+                dest.flush();
+                total += bytes;
+                if (listener != null) {
+                    listener.bytesTransferred(total, bytes, streamSize);
+                }
+            }
+        } catch (IOException e) {
+            throw new CopyStreamException("IOException caught while copying.", total, e);
+        }
+	}
 
 	/**
 	 * List files inside the current folder.
