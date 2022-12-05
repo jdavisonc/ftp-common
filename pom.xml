@@ -68,7 +68,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		
 		<slf4j-api.version>1.6.1</slf4j-api.version>
-		<commons-net.version>2.2</commons-net.version>
+		<commons-net.version>3.9.0</commons-net.version>
 		<commons-cli.version>1.2</commons-cli.version>
 	</properties>
 
